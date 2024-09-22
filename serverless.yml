@@ -1,0 +1,95 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: karthikdev
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: auction-service
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  memorySize: 1024
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region,'us-east-1'}
+  environment:
+    AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name}
+  iam:
+    role:
+      statements:
+        - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
+      
+
+resources:
+  Resources:
+    AuctionsTable: ${file(resources/AuctionsTable.yml):AuctionsTable}
+
+package:
+  patterns:
+    - '!node_modules/**'
+    - 'node_modules/uuid/**'
+    - 'node_modules/@aws-sdk/client-dynamodb/**'
+    - 'node_modules/@aws-sdk/lib-dynamodb/**'
+    - 'node_modules/@smithy/**'
+    - 'node_modules/tslib/**'
+    - 'node_modules/@middy/**'
+    - 'node_modules/http-errors/**'
+    - 'node_modules/depd/**'
+    - 'node_modules/setprototypeof/**'
+    - 'node_modules/statuses/**'
+    - 'node_modules/inherits/**'
+    - 'node_modules/toidentifier/**' 
+    - 'node_modules/ajv-formats/**'
+    - 'node_modules/ajv/**'
+    - 'node_modules/ajv-formats-draft2019/**'
+    - 'node_modules/ajv-ftl-i18n/**'
+    - 'node_modules/ajv-keywords/**'
+    - 'node_modules/json-schema-traverse/**'
+    - 'node_modules/@fluent/syntax/**'
+    - 'node_modules/change-case/**'
+    - 'node_modules/fluent-transpiler/**'
+    
+
+functions:
+  createAuction:
+    handler: src/handlers/createAuction.handler
+    url:
+      cors: true
+    events:
+      - http:
+          method: POST
+          path: /auction
+
+  getAuctions:
+    handler: src/handlers/getAuctions.handler
+    url:
+      cors: true
+    events:
+      - http:
+          method: GET
+          path: /auctions
+
+  getAuction:
+    handler: src/handlers/getAuction.handler
+    url:
+      cors: true
+    events:
+      - http:
+          method: GET
+          path: /auction/{id}
+
+  placeBid:
+    handler: src/handlers/placeBid.handler
+    url:
+      cors: true
+    events:
+      - http:
+          method: PATCH
+          path: /auction/{id}/bid
+
+  processAuctions:
+    handler: src/handlers/processAuctions.handler
+    # events:
+    #   - schedule: rate(1 minute)
+
+custom:
+  AuctionsTable:
+    name: !Ref AuctionsTable
+    arn: !GetAtt AuctionsTable.Arn
